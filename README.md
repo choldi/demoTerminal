@@ -4,7 +4,7 @@ Requeriments:
  - Python3
  - pip3
 
-Execute git clone url
+Execute git clone https://github.com/choldi/demoTerminal
 
 Enter to download
 >cd demoTerminal
@@ -12,6 +12,9 @@ Enter to download
 Execute to install prerequisites
 >bash setup.sh
 
-cd app
-flask run -h 0.0.0.0
+Change to app to run the app
+>cd app
+
+start flask
+>flask run -h 0.0.0.0
 
