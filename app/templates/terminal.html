@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <h1>{% block title %} TERMINAL {% endblock %}</h1>
+    <div id="terminal"></div>
+    <h3>{{ utc_dt }}</h3>
+    <script>
+      jQuery(function($) {
+          $('#terminal').terminal("/api", {
+          login: true,
+          greetings: "You are authenticated",
+          onAjaxError: handleAjaxError,
+          token:true
+          },);
+      });
+      function handleAjaxError(error) {
+        err=JSON.parse(error.responseText);
+        try {
+          if (err.error.data.message=='User Not allowed') {
+            $("#terminal").terminal().echo(err.error.data.message);
+            return false;
+          };
+          if (err.error.name=="MethodNotFoundError") {
+            $("#terminal").terminal().echo("Command not found") ;
+            return false;
+          }
+        } catch {
+          return true;
+        }
+  
+        $("#terminal").terminal().echo("Ajax Error")
+         console.log(error);
+         return false
+      }
+    </script>
+{% endblock %}
