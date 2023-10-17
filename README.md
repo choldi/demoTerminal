@@ -13,6 +13,9 @@ Enter to download directory
 Execute to install prerequisites
 >bash setup.sh
 
+Load virtual environment
+>source venv/bin/activate 
+
 Change to app to run the app
 >cd app
 
