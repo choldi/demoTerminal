@@ -4,9 +4,10 @@ Requeriments:
  - Python3
  - pip3
 
-Execute git clone https://github.com/choldi/demoTerminal
+Clone repo
+>git clone https://github.com/choldi/demoTerminal
 
-Enter to download
+Enter to download directory
 >cd demoTerminal
 
 Execute to install prerequisites
