@@ -1,4 +1,5 @@
 import os
+import time
 import datetime
 import hashlib
 from flask import Flask, render_template, Response, request
@@ -21,16 +22,10 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db=Model.db
 
 
-
-
-class User(db.Model):
-    __tablename__ = 'user'
-    id: Mapped[int] = mapped_column(db.Integer, primary_key=True)
-    username: Mapped[str] = mapped_column(db.String, unique=True, nullable=False)
-    password: Mapped[str] = mapped_column(db.String, unique=False, nullable=False)
-    email: Mapped[str] = mapped_column(db.String)
-
 db.init_app(app)
+with app.app_context():
+   from modules.user import User
+   from modules.session import Session
 
 jsonrpc = JSONRPC(app, "/api", enable_web_browsable_api=True)
 
@@ -58,8 +53,10 @@ def login(*argv:str) -> str:
     usr=argv[0]
     pwd=argv[1]
     exists = db.session.query(User.email).filter_by(username=usr,password=pwd).first() is not None
-    s=f"{usr}:{pwd}"
+    millis=round(time.time() * 1000)
+    s=f"{usr}:{pwd}:{millis}"
     res = hashlib.md5(s.encode('utf-8'))
+    print (res.hexdigest())
     if exists:
         return res.hexdigest()
     else:
