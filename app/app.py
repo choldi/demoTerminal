@@ -1,6 +1,6 @@
 import os
 import time
-import datetime
+from datetime import datetime
 import hashlib
 from flask import Flask, render_template, Response, request
 from flask_jsonrpc import JSONRPC
@@ -45,6 +45,25 @@ def about():
 def index() -> str:
     return "Welcome to Flask JSON-RPC"
 
+@jsonrpc.method("ls")
+def ls(*argV:str) -> str:
+    token=argV[0]
+    session = db.session.query(Session.id).filter_by(token=token).first()
+    if (session is None):
+        raise InvalidRequestError(data={'message':'No session'})
+    print (session)
+    last = session.last_command
+
+    now = datetime.utcnow()
+    differ = now - last
+    if differ.total_seconds() > 120:
+        raise InvalidRequestError(data={'message':'Session expired'})
+    session.last_command=now 
+    db.session.update(session)
+    db.session.commit()
+    print (f"{last}")
+    return "Welcome to Flask JSON-RPC"
+
 @jsonrpc.method("login")
 def login(*argv:str) -> str:
     if len(argv) != 2:
@@ -52,13 +71,18 @@ def login(*argv:str) -> str:
    # users = db.session.execute(db.select(User).order_by(User.username)).scalars()
     usr=argv[0]
     pwd=argv[1]
-    exists = db.session.query(User.email).filter_by(username=usr,password=pwd).first() is not None
+    user = db.session.query(User.id).filter_by(username=usr,password=pwd).first() 
+    exists = user is not None
     millis=round(time.time() * 1000)
     s=f"{usr}:{pwd}:{millis}"
     res = hashlib.md5(s.encode('utf-8'))
-    print (res.hexdigest())
+    resHex = res.hexdigest()
+    print (resHex)
     if exists:
-        return res.hexdigest()
+        session = Session(user_id=user.id,token=resHex,last_command=datetime.utcnow())
+        db.session.add(session)
+        db.session.commit()
+        return resHex
     else:
         raise InvalidParamsError(data={'message': 'User Not allowed'})
 
