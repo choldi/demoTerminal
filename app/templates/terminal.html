@@ -24,6 +24,12 @@
             $("#terminal").terminal().echo("Command not found") ;
             return false;
           }
+          if (err.error.name=="InvalidRequestError" && err.error.data.message.startsWith('Session')){
+            $("#terminal").terminal().echo(err.error.message) ;
+            $("#terminal").terminal().logout();
+            return false;
+
+          }
         } catch {
           return true;
         }

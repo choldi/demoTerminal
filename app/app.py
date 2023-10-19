@@ -4,7 +4,7 @@ from datetime import datetime
 import hashlib
 from flask import Flask, render_template, Response, request
 from flask_jsonrpc import JSONRPC
-from flask_jsonrpc.exceptions import InvalidParamsError
+from flask_jsonrpc.exceptions import InvalidParamsError,InvalidRequestError
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import Mapped, mapped_column
 import Model
@@ -29,6 +29,22 @@ with app.app_context():
 
 jsonrpc = JSONRPC(app, "/api", enable_web_browsable_api=True)
 
+def validateSession(token):
+    session = db.session.query(Session).filter_by(token=token).first()
+    if (session is None):
+        raise InvalidRequestError(data={'message':'Session not found'})
+    last = session.last_command
+    print(f"last:{last}")
+    now = datetime.utcnow()
+    differ = now - last
+    if differ.total_seconds() > 120:
+        db.session.delete(session)
+        db.session.commit()
+        raise InvalidRequestError(data={'message':'Session expired'})
+    session.last_command=now 
+    db.session.commit()
+
+
 @app.route('/')
 def hello():
     return render_template('index.html', utc_dt=datetime.datetime.utcnow())
@@ -48,20 +64,7 @@ def index() -> str:
 @jsonrpc.method("ls")
 def ls(*argV:str) -> str:
     token=argV[0]
-    session = db.session.query(Session.id).filter_by(token=token).first()
-    if (session is None):
-        raise InvalidRequestError(data={'message':'No session'})
-    print (session)
-    last = session.last_command
-
-    now = datetime.utcnow()
-    differ = now - last
-    if differ.total_seconds() > 120:
-        raise InvalidRequestError(data={'message':'Session expired'})
-    session.last_command=now 
-    db.session.update(session)
-    db.session.commit()
-    print (f"{last}")
+    validateSession(token)
     return "Welcome to Flask JSON-RPC"
 
 @jsonrpc.method("login")
