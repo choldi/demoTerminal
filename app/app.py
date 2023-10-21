@@ -24,8 +24,8 @@ db=Model.db
 
 db.init_app(app)
 with app.app_context():
-   from modules.user import User
-   from modules.session import Session
+   from models.user import User
+   from models.session import Session
 
 jsonrpc = JSONRPC(app, "/api", enable_web_browsable_api=True)
 
