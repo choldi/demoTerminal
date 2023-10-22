@@ -7,6 +7,7 @@ from flask_jsonrpc import JSONRPC
 from flask_jsonrpc.exceptions import InvalidParamsError,InvalidRequestError
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import Mapped, mapped_column
+from rd import RealDebrid as RD
 import Model
 # init SQLAlchemy so we can use it later in our models
 
