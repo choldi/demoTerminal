@@ -12,11 +12,15 @@ class Prowlarr:
 
   def __init__(self,prowlar_key,prowlar_host):
      self.api_key=prowlar_key
-     self.url_search=prowlar_host
+     self.url_search=f"{prowlar_host}/api/v1/search"
      self.headers = {"Accept": "application/json",
                      "Content-Type": "application/json",
                      "X-Api-Key": prowlar_key}
      self.logger=init_log(lname="Prowlarr")
+     self.logger.debug("Init parameters:")
+     self.logger.debug(f"api_key   :{self.api_key}")
+     self.logger.debug(f"url_search:{self.url_search}")
+     self.logger.debug(f"headers   :{self.headers}")
 
 
   def getFilename_fromCd(self,cd):
