@@ -6,6 +6,7 @@ import logging
 import colorlog
 import time
 import os
+from Log import init_log
 
 logger = logging.getLogger("rd.py")
 
@@ -24,7 +25,8 @@ class RealDebrid:
   def __init__(self, api_key,loglevel=logging.DEBUG):
     self.api_key = api_key
     self.rootUrl = "https://api.real-debrid.com/rest/1.0"
-    self.logger = self.set_logging(loglevel)
+    #self.logger = self.set_logging(loglevel)
+    self.logger = init_log()
     self.headers = { "Authorization": f"Bearer {api_key}" }
     self.path='./downloads/'
     

@@ -25,7 +25,7 @@
             return false;
           }
           if (err.error.name=="InvalidRequestError" && err.error.data.message.startsWith('Session')){
-            $("#terminal").terminal().echo(err.error.message) ;
+            $("#terminal").terminal().echo(err.error.data.message) ;
             $("#terminal").terminal().logout();
             return false;
 
