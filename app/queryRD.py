@@ -1,15 +1,15 @@
-import requests
-import re
-from rdclass import RealDebrid as RD
-from operator import itemgetter
 import os
 import time
+import yaml
+import argparse
+import requests
+import re
+from operator import itemgetter
 import logging
 from Log import init_log
 from QPElem import QPElem, TorrentElements
 from Prowlarr import Prowlarr
-import yaml
-import argparse
+from rd import RealDebrid as RD
   
 cats=[ 'WEBRip', 'WEB-DL', 'HDRip', 'DVDRip', 'BRRip', 'BluRay', '1080p', '720p', '480p', '2160p', '4K']
 cats+=[ 'HDTV','PDTV','x264','x265','AVC','H265','H264']
