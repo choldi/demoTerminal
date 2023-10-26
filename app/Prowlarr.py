@@ -12,7 +12,7 @@ class Prowlarr:
 
   def __init__(self,prowlar_key,prowlar_host):
      self.api_key=prowlar_key
-     self.url_search="https://prowlarr.choldixp.duckdns.org/api/v1/search"
+     self.url_search=prowlar_host
      self.headers = {"Accept": "application/json",
                      "Content-Type": "application/json",
                      "X-Api-Key": prowlar_key}
