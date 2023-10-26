@@ -14,21 +14,10 @@ class RealDebrid:
     self.api_key = api_key
     self.rootUrl = "https://api.real-debrid.com/rest/1.0"
     #self.logger = self.set_logging(loglevel)
-    self.logger = init_log()
+    self.logger = init_log("RealDebrid")
     self.headers = { "Authorization": f"Bearer {api_key}" }
     self.path='./downloads/'
     
-  def set_logging(self,loglevel):
-    logger = logging.getLogger("RealDebrid")
-    stdout = colorlog.StreamHandler(stream=sys.stdout)
-
-    fmt = colorlog.ColoredFormatter(
-      "%(name)s: %(white)s%(asctime)s%(reset)s | %(log_color)s%(levelname)s%(reset)s | %(blue)s%(filename)s:%(lineno)s - %(funcName)20s()%(reset)s | %(process)d >>> %(log_color)s%(message)s%(reset)s"
-    )
-    stdout.setFormatter(fmt)
-    logger.addHandler(stdout)
-    logger.setLevel(loglevel)
-    return logger
 
   #get hash from magnet link 
   def get_torrent_hash(self,magnet_link):
@@ -131,14 +120,14 @@ class RealDebrid:
 
 #search if 
   def get_files_magnet(self,magnet):
-    logger.debug(f"search for torrent in account")
+    self.logger.debug(f"search for torrent in account")
     hash=self.get_torrent_hash(magnet)
     id=search_torrent(hash)
     if (id=={}):
-      logger.debug("torrent not in account")
+      self.logger.debug("torrent not in account")
     cache=check_cache(hash)
     if (cache):
-      logger.debug(f"{hash} in cache, mas rapido")
+      self.logger.debug(f"{hash} in cache, mas rapido")
       id=add_torrent2rd(magnet)
     
       
@@ -147,24 +136,24 @@ class RealDebrid:
     torrentcache=self.check_torrent_cache(hash)
 
     if (torrentcache!=[]):
-      logger.debug("torrent in cache")
+      self.logger.debug("torrent in cache")
       return True
     else:
       return False
 
   def add_magnet2rd(self,magnet):
     host=self.get_available_srv()
-    logger.debug(f"Available host:{host}")
+    self.logger.debug(f"Available host:{host}")
     if (host!=""):
       apicall=f"{self.rootUrl}/torrents/addMagnet"
       data={'magnet':magnet,'host':host}
-      logger.debug(f"apicall:{apicall}")
-      logger.debug(f"data:{data}")
+      self.logger.debug(f"apicall:{apicall}")
+      self.logger.debug(f"data:{data}")
       response = requests.post(apicall, data=data, headers=self.headers)
-      logger.debug (f"response status code: {response.status_code}")
+      self.logger.debug (f"response status code: {response.status_code}")
       if response.status_code == 201:
         rdtorrent=response.json()
-        logger.debug(f"json: {rdtorrent}")
+        self.logger.debug(f"json: {rdtorrent}")
         if self.select_all_files(rdtorrent):
           return rdtorrent 
       
@@ -173,39 +162,39 @@ class RealDebrid:
   def select_all_files(self,rdtorrent,all=True):
     apicall=f"{self.rootUrl}/torrents/info/"
     apicall=rdtorrent['uri']
-    logger.debug(f"apicall:{apicall}")
+    self.logger.debug(f"apicall:{apicall}")
     response = requests.get(apicall, headers=self.headers)
-    logger.debug (f"response status code: {response.status_code}")
+    self.logger.debug (f"response status code: {response.status_code}")
     if response.status_code == 200:
       torrentinfo=response.json()
-      logger.debug(f"json: {torrentinfo}")
+      self.logger.debug(f"json: {torrentinfo}")
       files=torrentinfo['files'] 
-      logger.debug(f"files: {torrentinfo}")
+      self.logger.debug(f"files: {torrentinfo}")
       if all:
         params='all'
       else:
         params = ','.join([str(file['id']) for file in files]) 
       data = {'files':params}
       apicall=f"{self.rootUrl}/torrents/selectFiles/{rdtorrent['id']}"
-      logger.debug(f"apicall:{apicall}")
-      logger.debug(f"data: {data}")
+      self.logger.debug(f"apicall:{apicall}")
+      self.logger.debug(f"data: {data}")
       response = requests.post(apicall, data=data,headers=self.headers)
-      logger.debug (f"response status code: {response.status_code}")
+      self.logger.debug (f"response status code: {response.status_code}")
       return response.status_code == 204
     return False  
 
   def add_torrent2rd(self,file):
     host=get_available_srv()
-    logger.debug(f"Available host:{host}")
+    self.logger.debug(f"Available host:{host}")
     if (host!=""):
       apicall=f"{self.rootUrl}/torrents/addTorrent"
       params={'host':host}
-      logger.debug(f"params:{params}")
+      self.logger.debug(f"params:{params}")
       response = requests.put(apicall, data=open(file,'rb'), headers=self.headers)
-      logger.debug (f"response status code: {response.status_code}")
+      self.logger.debug (f"response status code: {response.status_code}")
       if response.status_code == 201:
         rdtorrent=response.json()
-        logger.debug(f"json: {rdtorrent}")
+        self.logger.debug(f"json: {rdtorrent}")
         if select_all_files(rdtorrent):
           return rdtorrent 
       
@@ -213,20 +202,20 @@ class RealDebrid:
 
   def get_info(self,rdtorrent):
     apicall=f"{self.rootUrl}/torrents/info/{rdtorrent['id']}"
-    logger.debug (f"apicall:{apicall}")
+    self.logger.debug (f"apicall:{apicall}")
     response = requests.get(apicall, headers=self.headers)
-    logger.debug (f"response status code: {response.status_code}")
+    self.logger.debug (f"response status code: {response.status_code}")
     if response.status_code == 200:
       info=response.json()
-      logger.debug(f"json: {info}")
+      self.logger.debug(f"json: {info}")
       return response.json()
 
   def get_files(self,rdtorrent):
     info=self.get_info(rdtorrent)
     print(f"Status torrent:{info['status']}")
     if (info['status']!='downloaded'):
-      logger.debug("f{rdtorrent['id']} not downloaded. Status {info['status']}")
+      self.logger.debug("f{rdtorrent['id']} not downloaded. Status {info['status']}")
     else:
-      logger.debug("f{rdtorrent['id']}. Original filename: {info['original_filename']}")
+      self.logger.debug("f{rdtorrent['id']}. Original filename: {info['original_filename']}")
     return info
 
