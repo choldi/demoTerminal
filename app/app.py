@@ -1,20 +1,30 @@
 import os
 import time
 from datetime import datetime
+import argparse
 import hashlib
+import yaml
 from flask import Flask, render_template, Response, request
 from flask_jsonrpc import JSONRPC
 from flask_jsonrpc.exceptions import InvalidParamsError,InvalidRequestError
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import Mapped, mapped_column
-from rd import RealDebrid as RD
 import Model
+import logging
+from Log import init_log
+from QPElem import QPElem, TorrentElements
+from Prowlarr import Prowlarr
+from rd import RealDebrid as RD
+
+rd:RD
+pr:Prowlarr
+
 # init SQLAlchemy so we can use it later in our models
 
 app = Flask(__name__)
 
 # configure the SQLite database, relative to the app instance folder
-db_dir = "./instance/project.db"
+db_dir = "./app/instance/project.db"
 database="sqlite:///" + os.path.abspath(db_dir)
 app.config["SQLALCHEMY_DATABASE_URI"] = database
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -27,6 +37,8 @@ db.init_app(app)
 with app.app_context():
    from models.user import User
    from models.session import Session
+   from models.search import Search
+   from models.result import Result
 
 jsonrpc = JSONRPC(app, "/api", enable_web_browsable_api=True)
 
@@ -48,7 +60,7 @@ def validateSession(token):
 
 @app.route('/')
 def hello():
-    return render_template('index.html', utc_dt=datetime.datetime.utcnow())
+    return render_template('index.html', utc_dt=datetime.utcnow())
 
 @app.route('/terminal/')
 def terminal():
@@ -90,6 +102,22 @@ def login(*argv:str) -> str:
     else:
         raise InvalidParamsError(data={'message': 'User Not allowed'})
 
+@jsonrpc.method("search")
+def search(*argv:str) -> str:
+    if len(argv) != 2:
+       raise InvalidParamsError(data={'message': 'Incorrect number of params'}) 
+   # users = db.session.execute(db.select(User).order_by(User.username)).scalars()
+    token=argv[0]
+    q=argv[1]
+    validateSession(token)
+    logger.debug("session validated")
+    
+    te=pr.search(q)
+    res=""
+    for t in te.with_min_seeders(1).sort_by("sortTitle"):
+       res+=f"{t.cat} - {t.title} - {t.seeders}"
+    return res
+
 @jsonrpc.method("help")
 def help(*argv:str) -> str:
     r=request.get_json()
@@ -111,5 +139,33 @@ def index():
 
 if __name__ == '__main__':
   print(__name__)   # I add two more lines here
+  logger=init_log(lname="Terminal")
+  parser = argparse.ArgumentParser()
+  parser.add_argument("--config", "-c", default="config.yml")
+  args=parser.parse_args()
+  config=args.config
+  try:
+    with open(config) as f:
+      cfg=yaml.safe_load(f)
+  except Exception as e:
+    logger.error(f"config error:{e} ")
+    exit()
+  
+  logger.debug("init qp main")
+    
+  try:
+     rd_apikey=cfg['realdebrid']['api']
+     pr_apikey=cfg['prowlarr']['api']
+     pr_url=cfg['prowlarr']['url']
+  except Exception as e:
+     logger.error(f"Not required parameters in {config} file")
+     exit()
+
+  rd = RD(rd_apikey)
+  logger.debug("created rd instance")
+  pr = Prowlarr(pr_apikey,pr_url)
+  logger.debug("created pr instance")
+
+
   print("ok")
   app.run(host='0.0.0.0')
