@@ -19,6 +19,7 @@ from rd import RealDebrid as RD
 rd:RD
 pr:Prowlarr
 
+SECONDS_FOR_INACTIVE_SESSION=300
 # init SQLAlchemy so we can use it later in our models
 
 app = Flask(__name__)
@@ -45,12 +46,12 @@ jsonrpc = JSONRPC(app, "/api", enable_web_browsable_api=True)
 def validateSession(token):
     session = db.session.query(Session).filter_by(token=token).first()
     if (session is None):
-        raise InvalidRequestError(data={'message':'Session not found'})
+     InvalidRequestError(data={'message':'Session not found'})
     last = session.last_command
     print(f"last:{last}")
     now = datetime.utcnow()
     differ = now - last
-    if differ.total_seconds() > 120:
+    if differ.total_seconds() > SECONDS_FOR_INACTIVE_SESSION:
         db.session.delete(session)
         db.session.commit()
         raise InvalidRequestError(data={'message':'Session expired'})
@@ -104,18 +105,21 @@ def login(*argv:str) -> str:
 
 @jsonrpc.method("search")
 def search(*argv:str) -> str:
-    if len(argv) != 2:
-       raise InvalidParamsError(data={'message': 'Incorrect number of params'}) 
-   # users = db.session.execute(db.select(User).order_by(User.username)).scalars()
     token=argv[0]
-    q=argv[1]
     validateSession(token)
+    if len(argv) < 2:
+       return 'Incorrect number of params'
+   # users = db.session.execute(db.select(User).order_by(User.username)).scalars()
+    q=' '.join(argv[1:])
     logger.debug("session validated")
     
     te=pr.search(q)
     res=""
-    for t in te.with_min_seeders(1).sort_by("sortTitle"):
-       res+=f"{t.cat} - {t.title} - {t.seeders}"
+    te=te.with_min_seeders(1).sort_by("sortTitle")
+    i=0
+    for t in te:
+       res+=f"{i}:{t.cat} - {t.title} - {t.seeders}\n"
+       i+=1
     return res
 
 @jsonrpc.method("help")
