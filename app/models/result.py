@@ -9,7 +9,7 @@ class Result(db.Model):
     age = db.Column(db.Integer,unique=False,nullable=False)
     size = db.Column(db.Integer,unique=False,nullable=False)
     title = db.Column(db.String, unique=False, nullable=False)
-    sortTitle = db.Column(db.String, unique=False, nullable=False)
+    sortTitle = db.Column(db.String, unique=False, nullable=True)
     approved = db.Column(db.String, unique=False, nullable=True)
     imdbId = db.Column(db.String, unique=False, nullable=True)
     downloadUrl = db.Column(db.String, unique=False, nullable=True)
@@ -17,8 +17,8 @@ class Result(db.Model):
     seeders = db.Column(db.Integer,unique=False,nullable=False)
     category = db.Column(db.String, unique=False, nullable=False)    
 
-    def __init__(session_id,elem:QPElem):
-        self.session_id=session_id
+    def __init__(self,search_id,elem:QPElem):
+        self.search_id=search_id
         self.guid = elem.guid
         self.age = elem.age
         self.size = elem.size
