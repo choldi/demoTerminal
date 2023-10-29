@@ -4,11 +4,14 @@ from datetime import datetime
 import argparse
 import hashlib
 import yaml
+from typing import Any
 from flask import Flask, render_template, Response, request
 from flask_jsonrpc import JSONRPC
 from flask_jsonrpc.exceptions import InvalidParamsError,InvalidRequestError
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.sql import func
+from sqlalchemy import desc
 import Model
 import logging
 from Log import init_log
@@ -20,6 +23,7 @@ rd:RD
 pr:Prowlarr
 
 SECONDS_FOR_INACTIVE_SESSION=300
+MAX_QUERIES_FOR_SESSION=5
 # init SQLAlchemy so we can use it later in our models
 
 app = Flask(__name__)
@@ -52,11 +56,13 @@ def validateSession(token):
     now = datetime.utcnow()
     differ = now - last
     if differ.total_seconds() > SECONDS_FOR_INACTIVE_SESSION:
+        #to do :cascade deleting (manually?)
         db.session.delete(session)
         db.session.commit()
         raise InvalidRequestError(data={'message':'Session expired'})
     session.last_command=now 
     db.session.commit()
+    return session.id
 
 
 @app.route('/')
@@ -104,24 +110,39 @@ def login(*argv:str) -> str:
         raise InvalidParamsError(data={'message': 'User Not allowed'})
 
 @jsonrpc.method("search")
-def search(*argv:str) -> str:
+def search(*argv:Any) -> str:
     token=argv[0]
-    validateSession(token)
+    session_id=validateSession(token)
+    logger.debug("session validated")
     if len(argv) < 2:
        return 'Incorrect number of params'
    # users = db.session.execute(db.select(User).order_by(User.username)).scalars()
-    q=' '.join(argv[1:])
-    logger.debug("session validated")
-    
-    te=pr.search(q)
     res=""
+    q=' '.join(argv[1:])
+    nums = db.session.query(Search).filter_by(session_id=session_id).order_by(Search.id)
+    n=nums.with_entities(func.count()).scalar()
+    if n>MAX_QUERIES_FOR_SESSION:
+        first_search_id=nums.first().id
+        db.session.query(Search).filter(Search.id==first_search_id).delete()
+        db.session.commit()
+        res+="Deleted old session number {first_search_id}"
+    te=pr.search(q)
     te=te.with_min_seeders(1).sort_by("sortTitle")
-    i=0
-    for t in te:
-       res+=f"{i}:{t.cat} - {t.title} - {t.seeders}\n"
-       i+=1
-    return res
-
+    if len(te)>0:
+        sea=Search(session_id=session_id)
+        db.session.add(sea)
+        db.session.commit()
+        db.session.refresh(sea)
+        res+=f"Search result num {sea.id} (for recovery)\n"
+        i=0
+        for t in te:
+            resdb=Result(search_id=sea.id,elem=t)
+            db.session.add(resdb)
+            res+=f"{i}:{t.cat} - {t.title} - {t.seeders}\n"
+            i+=1
+        db.session.commit()
+        return res
+    return f"No results for {q}\n"
 @jsonrpc.method("help")
 def help(*argv:str) -> str:
     r=request.get_json()
