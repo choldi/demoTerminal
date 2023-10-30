@@ -56,8 +56,16 @@ def validateSession(token):
     now = datetime.utcnow()
     differ = now - last
     if differ.total_seconds() > SECONDS_FOR_INACTIVE_SESSION:
+        #get searches from session
+        db.session.commit()
+        searches=db.session.query(Search.id).filter(Search.id==session.id)
+        results=db.session.query(Result).filter(Result.search_id.in_(searches))
         #to do :cascade deleting (manually?)
-        db.session.delete(session)
+        results.delete()
+        db.session.commit()
+        db.session.query(Search).filter(Search.id.in_(searches)).delete()
+        db.session.commit()
+        db.session.query(Session).filter(Session.id==session.id).delete()
         db.session.commit()
         raise InvalidRequestError(data={'message':'Session expired'})
     session.last_command=now 
