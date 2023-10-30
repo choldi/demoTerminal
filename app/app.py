@@ -50,23 +50,19 @@ jsonrpc = JSONRPC(app, "/api", enable_web_browsable_api=True)
 def validateSession(token):
     session = db.session.query(Session).filter_by(token=token).first()
     if (session is None):
-     InvalidRequestError(data={'message':'Session not found'})
+     raise InvalidRequestError(data={'message':'Session not found'})
     last = session.last_command
     print(f"last:{last}")
     now = datetime.utcnow()
     differ = now - last
     if differ.total_seconds() > SECONDS_FOR_INACTIVE_SESSION:
         #get searches from session
-        db.session.commit()
         searches=db.session.query(Search.id).filter(Search.id==session.id)
         results=db.session.query(Result).filter(Result.search_id.in_(searches))
         #to do :cascade deleting (manually?)
         results.delete()
-        db.session.commit()
         db.session.query(Search).filter(Search.id.in_(searches)).delete()
-        db.session.commit()
         db.session.query(Session).filter(Session.id==session.id).delete()
-        db.session.commit()
         raise InvalidRequestError(data={'message':'Session expired'})
     session.last_command=now 
     db.session.commit()
@@ -126,7 +122,8 @@ def search(*argv:Any) -> str:
        return 'Incorrect number of params'
    # users = db.session.execute(db.select(User).order_by(User.username)).scalars()
     res=""
-    q=' '.join(argv[1:])
+    q=' '.join(map(str,argv[1:]))
+    '''
     nums = db.session.query(Search).filter_by(session_id=session_id).order_by(Search.id)
     n=nums.with_entities(func.count()).scalar()
     if n>MAX_QUERIES_FOR_SESSION:
@@ -134,23 +131,71 @@ def search(*argv:Any) -> str:
         db.session.query(Search).filter(Search.id==first_search_id).delete()
         db.session.commit()
         res+="Deleted old session number {first_search_id}"
+    '''
+    nums = db.session.query(Search).filter_by(session_id=session_id)
+    if nums.count()==0:
+        pass
+    elif nums.count()==1:
+        db.session.query(Result).filter_by(search_id=nums.first().id).delete()
+        nums.delete()
+        db.session.commit()
+
     te=pr.search(q)
     te=te.with_min_seeders(1).sort_by("sortTitle")
+    s=te.to_str()
     if len(te)>0:
         sea=Search(session_id=session_id)
         db.session.add(sea)
         db.session.commit()
         db.session.refresh(sea)
-        res+=f"Search result num {sea.id} (for recovery)\n"
+        res+=f"Search result num {sea.id} \n"
         i=0
         for t in te:
             resdb=Result(search_id=sea.id,elem=t)
+            resdb.picknumber=i
             db.session.add(resdb)
             res+=f"{i}:{t.cat} - {t.title} - {t.seeders}\n"
             i+=1
         db.session.commit()
         return res
     return f"No results for {q}\n"
+
+@jsonrpc.method("filter")
+def filter(*argv:Any) -> str:
+    token=argv[0]
+    session_id=validateSession(token)
+    logger.debug("session validated")
+    msg="Format for filter: \n"
+    msg+="filter cat nnn -> filter category containing nnn\n"
+    msg+="filter seeders n -> filter with minimum n seeders\n"
+    msg+="filter name mmmm -> filter by name mmmm\n"
+    if len(argv) < 3:
+       return msg
+    command=argv[1]
+    opt=argv[2]
+    if not (command=="cat" or command=="seeders" or command==name):
+        return msg
+    
+    search = db.session.query(Search).filter_by(session_id=session_id).order_by(Search.search_date).first()
+    if (search is None):
+        return "No active query"
+    results = db.session.query(Result).filter_by(search_id=search.id)
+    if (results.first() is None):
+        return "No results stored"
+    res=""
+    if (command=="seeders" and opt.isnumeric()):
+       pass    
+    if (command=="cat"):
+        opt=f"%{opt.lower()}%"
+        filtered=results.filter(func.lower(Result.category).like(opt))
+   # users = db.session.execute(db.select(User).order_by(User.username)).scalars()
+    if filtered.count()>0:
+        for f in filtered:
+            res+=f"{f.picknumber}:{f.category} - {f.title} - {f.seeders}\n"
+        return res
+    return f"No results for {q}\n"
+
+
 @jsonrpc.method("help")
 def help(*argv:str) -> str:
     r=request.get_json()
