@@ -142,6 +142,10 @@ class TorrentElements(List):
         s=TorrentElements()
         s.extend(sorted(self,key=lambda x:getattr(x,element),reverse=reverse))
         return s
+
+    def to_str(self)->str:
+        s="\n".join([f"{t.guid}-{t.title}" for t in self])
+        return s
 #
 #    def __repr__(self):
 #        for l in self:
