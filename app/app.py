@@ -172,8 +172,8 @@ def filter(*argv:Any) -> str:
     if len(argv) < 3:
        return msg
     command=argv[1]
-    opt=argv[2]
-    if not (command=="cat" or command=="seeders" or command==name):
+    opt=str(argv[2])
+    if not (command=="cat" or command=="seeders" or command=="name"):
         return msg
     
     search = db.session.query(Search).filter_by(session_id=session_id).order_by(Search.search_date).first()
@@ -183,17 +183,27 @@ def filter(*argv:Any) -> str:
     if (results.first() is None):
         return "No results stored"
     res=""
-    if (command=="seeders" and opt.isnumeric()):
-       pass    
+    if (command=="seeders"):
+        if opt.isnumeric():
+            minS=int(opt)  
+            filtered=results.filter(Result.seeders>=minS)
+        else:
+            return f"filter seeders has to be numeric. {opt} is not"
     if (command=="cat"):
         opt=f"%{opt.lower()}%"
         filtered=results.filter(func.lower(Result.category).like(opt))
+    if (command=="name"):
+        opt=f"%{opt.lower()}%"
+        filtered=results.filter(func.lower(Result.title).like(opt))
+
    # users = db.session.execute(db.select(User).order_by(User.username)).scalars()
     if filtered.count()>0:
+        te=TorrentElements()
         for f in filtered:
+            te.append(f.toQPElem)
             res+=f"{f.picknumber}:{f.category} - {f.title} - {f.seeders}\n"
         return res
-    return f"No results for {q}\n"
+    return f"No results for filer {command} {opt}\n"
 
 
 @jsonrpc.method("help")
