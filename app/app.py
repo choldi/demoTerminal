@@ -22,6 +22,11 @@ from rd import RealDebrid as RD
 rd:RD
 pr:Prowlarr
 
+class ArgumentParser(argparse.ArgumentParser):
+
+    def error(self, message):
+        raise Exception(message) 
+
 SECONDS_FOR_INACTIVE_SESSION=300
 MAX_QUERIES_FOR_SESSION=5
 # init SQLAlchemy so we can use it later in our models
@@ -172,29 +177,38 @@ def filter(*argv:Any) -> str:
     if len(argv) < 3:
        return msg
     command=argv[1]
-    opt=str(argv[2])
-    if not (command=="cat" or command=="seeders" or command=="name"):
+    
+    parser=ArgumentParser()
+    parser.add_argument("-name",nargs="+")
+    parser.add_argument("-seeders",type=int)
+    parser.add_argument("-cat",nargs=1)
+    a=argv[1:]
+    q=' '.join(map(str,argv[1:]))
+    try:
+        args=parser.parse_args(q.split())
+    except Exception as e:
+        return str(e)
+    
+    if not (args.cat or args.seeders or args.name):
         return msg
     
     search = db.session.query(Search).filter_by(session_id=session_id).order_by(Search.search_date).first()
     if (search is None):
         return "No active query"
-    results = db.session.query(Result).filter_by(search_id=search.id)
-    if (results.first() is None):
+    filtered = db.session.query(Result).filter_by(search_id=search.id)
+    if (filtered.first() is None):
         return "No results stored"
     res=""
-    if (command=="seeders"):
-        if opt.isnumeric():
-            minS=int(opt)  
-            filtered=results.filter(Result.seeders>=minS)
-        else:
-            return f"filter seeders has to be numeric. {opt} is not"
-    if (command=="cat"):
-        opt=f"%{opt.lower()}%"
-        filtered=results.filter(func.lower(Result.category).like(opt))
-    if (command=="name"):
-        opt=f"%{opt.lower()}%"
-        filtered=results.filter(func.lower(Result.title).like(opt))
+    if (args.seeders):
+        minS=args.seeders  
+        filtered=filtered.filter(Result.seeders>=minS)
+    if (args.cat):
+        opt=f"%{args.cat[0].lower()}%"
+        filtered=filtered.filter(func.lower(Result.category).like(opt))
+    if (args.name):
+        opt=" ".join(args.name).lower()
+        opt=f"%{opt}%"
+        filtered=filtered.filter(func.lower(Result.title).like(opt))
 
    # users = db.session.execute(db.select(User).order_by(User.username)).scalars()
     if filtered.count()>0:
