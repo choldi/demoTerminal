@@ -11,7 +11,7 @@ from flask_jsonrpc.exceptions import InvalidParamsError,InvalidRequestError
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.sql import func
-from sqlalchemy import desc
+from sqlalchemy import desc,and_
 import Model
 import logging
 from Log import init_log
@@ -182,7 +182,6 @@ def filter(*argv:Any) -> str:
     parser.add_argument("-name",nargs="+")
     parser.add_argument("-seeders",type=int)
     parser.add_argument("-cat",nargs=1)
-    a=argv[1:]
     q=' '.join(map(str,argv[1:]))
     try:
         args=parser.parse_args(q.split())
@@ -218,6 +217,25 @@ def filter(*argv:Any) -> str:
             res+=f"{f.picknumber}:{f.category} - {f.title} - {f.seeders}\n"
         return res
     return f"No results for filer {command} {opt}\n"
+
+@jsonrpc.method("select")
+def select(*argv:Any) -> str:
+    token=argv[0]
+    session_id=validateSession(token)
+    logger.debug("session validated")
+    if len(argv) < 2:
+       return "Need to select"
+    number=argv[1]
+    if not isinstance(number,int):
+        return "Need to specify number"
+    search = db.session.query(Search).filter_by(session_id=session_id).order_by(Search.search_date).first()
+    if (search is None):
+        return "No active query"
+    res_elem = db.session.query(Result).filter(and_(Result.search_id==search.id,Result.picknumber==number)).first()
+    if (res_elem is None):
+        return "Result not found"
+    res=f"Selected {res_elem.picknumber}:{res_elem.category} - {res_elem.title} - {res_elem.seeders}\n"
+    return res
 
 
 @jsonrpc.method("help")
