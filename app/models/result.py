@@ -17,7 +17,9 @@ class Result(db.Model):
     seeders = db.Column(db.Integer,unique=False,nullable=False)
     category = db.Column(db.String, unique=False, nullable=False)    
     picknumber = db.Column(db.Integer,unique=False,nullable=True)
-    
+    selected = db.Column(db.Boolean,unique=False,nullable=True)
+
+
     def __init__(self,search_id,elem:QPElem):
         self.search_id=search_id
         self.guid = elem.guid
