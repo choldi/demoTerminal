@@ -11,7 +11,7 @@ from flask_jsonrpc.exceptions import InvalidParamsError,InvalidRequestError
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.sql import func
-from sqlalchemy import desc,and_
+from sqlalchemy import update,desc,and_
 import Model
 import logging
 from Log import init_log
@@ -231,9 +231,15 @@ def select(*argv:Any) -> str:
     search = db.session.query(Search).filter_by(session_id=session_id).order_by(Search.search_date).first()
     if (search is None):
         return "No active query"
+    
+    stmt = update(Result).where(Result.search_id == search.id).values(selected=False)
+    db.session.execute(stmt)
+    db.session.commit()
     res_elem = db.session.query(Result).filter(and_(Result.search_id==search.id,Result.picknumber==number)).first()
     if (res_elem is None):
         return "Result not found"
+    res_elem.selected=True
+    db.session.commit()
     res=f"Selected {res_elem.picknumber}:{res_elem.category} - {res_elem.title} - {res_elem.seeders}\n"
     return res
 
