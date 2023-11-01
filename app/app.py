@@ -71,7 +71,7 @@ def validateSession(token):
         raise InvalidRequestError(data={'message':'Session expired'})
     session.last_command=now 
     db.session.commit()
-    return session.id
+    return session
 
 
 @app.route('/')
@@ -109,7 +109,6 @@ def login(*argv:str) -> str:
     s=f"{usr}:{pwd}:{millis}"
     res = hashlib.md5(s.encode('utf-8'))
     resHex = res.hexdigest()
-    print (resHex)
     if exists:
         session = Session(user_id=user.id,token=resHex,last_command=datetime.utcnow())
         db.session.add(session)
@@ -121,7 +120,8 @@ def login(*argv:str) -> str:
 @jsonrpc.method("search")
 def search(*argv:Any) -> str:
     token=argv[0]
-    session_id=validateSession(token)
+    session=validateSession
+    session_id=session.id
     logger.debug("session validated")
     if len(argv) < 2:
        return 'Incorrect number of params'
@@ -168,7 +168,8 @@ def search(*argv:Any) -> str:
 @jsonrpc.method("filter")
 def filter(*argv:Any) -> str:
     token=argv[0]
-    session_id=validateSession(token)
+    session=validateSession(token)
+    session_id=session.id
     logger.debug("session validated")
     msg="Format for filter: \n"
     msg+="filter cat nnn -> filter category containing nnn\n"
@@ -221,7 +222,8 @@ def filter(*argv:Any) -> str:
 @jsonrpc.method("select")
 def select(*argv:Any) -> str:
     token=argv[0]
-    session_id=validateSession(token)
+    session=validateSession(token)
+    session_id=session.id
     logger.debug("session validated")
     if len(argv) < 2:
        return "Need to select"
