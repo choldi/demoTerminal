@@ -2,8 +2,8 @@ from Model import db
 from QPElem import QPElem
 from models.result import Result
 
-class Stored(db.Model):
-    __tablename__ = 'stored'
+class Collected(db.Model):
+    __tablename__ = 'collected'
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     guid = db.Column(db.String, unique=False, nullable=False)
