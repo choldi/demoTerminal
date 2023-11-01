@@ -16,6 +16,7 @@ class Result(db.Model):
     magnetUrl = db.Column(db.String, unique=False, nullable=True)
     seeders = db.Column(db.Integer,unique=False,nullable=False)
     category = db.Column(db.String, unique=False, nullable=False)    
+    filename = db.Column(db.String, unique=False, nullable=False)    
     picknumber = db.Column(db.Integer,unique=False,nullable=True)
     selected = db.Column(db.Boolean,unique=False,nullable=True)
 
@@ -31,18 +32,11 @@ class Result(db.Model):
         self.downloadUrl = elem.downloadUrl
         self.magnetUrl = elem.magnetUrl
         self.seeders = elem.seeders
-        self.category = elem.cat   
+        self.category = elem.cat
+        self.filename = elem.fileName   
 
     def toQPElem(self)->QPElem:
-        elem=QPElem()
-        elem.guid = self.guid
-        elem.age = self.age
-        elem.size = self.size  
-        elem.title = self.title 
-        elem.approved = self.approved 
-        elem.imdbId = self.imdbId
-        elem.downloadUrl = self.downloadUrl 
-        elem.magnetUrl = self.magnetUrl 
-        elem.seeders = self.seeders
-        elem.cat = self.category
+        elem=QPElem(self.guid,self.age,0,0,self.size,0,"",self.title,self.sortTitle,
+            self.approved,self.imdbId,"",self.downloadUrl,self.magnetUrl,"",[],[],
+            self.seeders,0,"",self.filename,self.category)
         return elem        
