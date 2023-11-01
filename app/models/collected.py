@@ -30,7 +30,7 @@ class Collected(db.Model):
         self.downloadUrl = elem.downloadUrl
         self.magnetUrl = elem.magnetUrl
         self.seeders = elem.seeders
-        self.category = elem.cat   
+        self.category = elem.category
 
     def toQPElem(self,elem:QPElem)->QPElem:
         elem=QPElem()
