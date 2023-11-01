@@ -1,5 +1,6 @@
 from Model import db
 from app import app
+from models.user import User
 
 with app.test_request_context():
 
