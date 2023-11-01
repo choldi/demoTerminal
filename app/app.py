@@ -243,10 +243,11 @@ def select(*argv:Any) -> str:
         return "Result not found"
     res_elem.selected=True
     db.session.commit()
+    '''
     coll=Collected(session.user_id,res_elem)
-    db.session.add(stor)
+    db.session.add(coll)
     db.session.commit()
-
+    '''
     res=f"Selected {res_elem.picknumber}:{res_elem.category} - {res_elem.title} - {res_elem.seeders}\n"
     return res
 
