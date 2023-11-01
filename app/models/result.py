@@ -33,7 +33,7 @@ class Result(db.Model):
         self.seeders = elem.seeders
         self.category = elem.cat   
 
-    def toQPElem(self,elem:QPElem)->QPElem:
+    def toQPElem(self)->QPElem:
         elem=QPElem()
         elem.guid = self.guid
         elem.age = self.age
