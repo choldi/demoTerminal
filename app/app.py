@@ -251,6 +251,31 @@ def select(*argv:Any) -> str:
     res=f"Selected {res_elem.picknumber}:{res_elem.category} - {res_elem.title} - {res_elem.seeders}\n"
     return res
 
+@jsonrpc.method("info")
+def info(*argv:Any) -> str:
+    token=argv[0]
+    session=validateSession(token)
+    session_id=session.id
+    logger.debug("session validated")
+    search = db.session.query(Search).filter_by(session_id=session_id).order_by(Search.search_date).first()
+    if (search is None):
+        return "No active query"
+    res_elem = db.session.query(Result).filter(and_(Result.search_id==search.id,Result.selected)).first()
+    if (res_elem is None):
+        return "No element select"
+    qp=res_elem.toQPElem()
+    typ,data=pr.get_magnet_or_file(qp)
+    print (f"{typ} - {data}")
+    if typ == "magnet":
+      hash=rd.get_torrent_hash(data)
+    else:
+      hash=rd.get_torrent_hash_from_file(data)
+
+    print(f"Hash de fichero: {hash}")
+
+    rdtorrent = rd.search_torrent(str(hash).lower())
+    if (rdtorrent!={}):
+      print(f"Item {rdtorrent['id']} found") 
 
 @jsonrpc.method("help")
 def help(*argv:str) -> str:
