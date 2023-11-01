@@ -7,4 +7,5 @@ class User(db.Model):
     password = db.Column(db.String, unique=False, nullable=False)
     email = db.Column(db.String)
     sessions = db.relationship('Session', backref='user', lazy=True)
+    stored = db.relationship('Stored', backref='user', lazy=True)
 
