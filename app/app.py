@@ -49,6 +49,7 @@ with app.app_context():
    from models.session import Session
    from models.search import Search
    from models.result import Result
+   from models.collected import Collected
 
 jsonrpc = JSONRPC(app, "/api", enable_web_browsable_api=True)
 
@@ -120,7 +121,7 @@ def login(*argv:str) -> str:
 @jsonrpc.method("search")
 def search(*argv:Any) -> str:
     token=argv[0]
-    session=validateSession
+    session=validateSession(token)
     session_id=session.id
     logger.debug("session validated")
     if len(argv) < 2:
@@ -242,6 +243,10 @@ def select(*argv:Any) -> str:
         return "Result not found"
     res_elem.selected=True
     db.session.commit()
+    coll=Collected(session.user_id,res_elem)
+    db.session.add(stor)
+    db.session.commit()
+
     res=f"Selected {res_elem.picknumber}:{res_elem.category} - {res_elem.title} - {res_elem.seeders}\n"
     return res
 
