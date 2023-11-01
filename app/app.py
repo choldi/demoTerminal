@@ -276,6 +276,9 @@ def info(*argv:Any) -> str:
     rdtorrent = rd.search_torrent(str(hash).lower())
     if (rdtorrent!={}):
       print(f"Item {rdtorrent['id']} found") 
+    '''
+    to do - not return
+    '''
 
 @jsonrpc.method("help")
 def help(*argv:str) -> str:
