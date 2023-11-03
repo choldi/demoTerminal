@@ -22,13 +22,13 @@ from rd import RealDebrid as RD
 rd:RD
 pr:Prowlarr
 
+
 class ArgumentParser(argparse.ArgumentParser):
 
     def error(self, message):
         raise Exception(message) 
 
 SECONDS_FOR_INACTIVE_SESSION=300
-MAX_QUERIES_FOR_SESSION=5
 # init SQLAlchemy so we can use it later in our models
 
 app = Flask(__name__)
@@ -72,6 +72,7 @@ def validateSession(token):
         raise InvalidRequestError(data={'message':'Session expired'})
     session.last_command=now 
     db.session.commit()
+    rd.download_link=f"./downloads/user/{session.user_id}/"
     return session
 
 
@@ -114,9 +115,9 @@ def login(*argv:str) -> str:
         session = Session(user_id=user.id,token=resHex,last_command=datetime.utcnow())
         db.session.add(session)
         db.session.commit()
-        return resHex
     else:
         raise InvalidParamsError(data={'message': 'User Not allowed'})
+    return resHex
 
 @jsonrpc.method("search")
 def search(*argv:Any) -> str:
@@ -273,12 +274,21 @@ def info(*argv:Any) -> str:
 
     print(f"Hash de fichero: {hash}")
 
+    res=f"Hash de torrent: {hash}\n"
     rdtorrent = rd.search_torrent(str(hash).lower())
     if (rdtorrent!={}):
-      print(f"Item {rdtorrent['id']} found") 
+        res+=f"Item {rdtorrent['id']} found in user cache\n" 
+    else:
+        res+="Item not found in user cache\n"
+    isInCache=rd.check_cache(hash)
+    if isInCache:
+        res+=f"Item found in RD cache" 
+    else:
+        res+=f"Item not found in RD cache"
     '''
     to do - not return
     '''
+    return res
 
 @jsonrpc.method("help")
 def help(*argv:str) -> str:
@@ -327,6 +337,8 @@ if __name__ == '__main__':
   logger.debug("created rd instance")
   pr = Prowlarr(pr_apikey,pr_url)
   logger.debug("created pr instance")
+
+  rdCol={}
 
 
   print("ok")
