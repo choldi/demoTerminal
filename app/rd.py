@@ -7,6 +7,26 @@ import colorlog
 import time
 import os
 from Log import init_log
+from typing import List,Any
+
+
+class File:
+  id: int
+  filename: str
+  filesize: int
+  def __init__(self,_id,_filename,_filesize):
+    self.id=_id
+    self.filename=_filename
+    self.filesize=_filesize
+
+  @staticmethod
+  def from_dict(obj: Any) -> 'Root':
+    _id=list(obj.keys())[0]
+    elem = obj.get(_id)
+    _filename = str(elem.get("age"))
+    _filesize = int(elem.get("ageHours"))
+    return __init__(_id,_filename,_filesize)
+
 
 
 class RealDebrid:
@@ -43,8 +63,8 @@ class RealDebrid:
         torrent_info = response.json()
         self.logger.debug(f"json: {torrent_info}")
         first_key = next(iter(torrent_info))
-        value=torrent_info[first_key]
-        if (torrent_info[first_key]!=[]):
+        value=torrent_info[first_key]['rd']
+        if (value!=[]):
             self.logger.debug("Torrent is cached in Real Debrid")
         else:
             self.logger.debug("Torrent is not cached in Real Debrid")
