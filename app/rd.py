@@ -8,25 +8,34 @@ import time
 import os
 from Log import init_log
 from typing import List,Any
-
+from QPElem import QPElem
 
 class File:
   id: int
   filename: str
   filesize: int
-  def __init__(self,_id,_filename,_filesize):
+  selected: int
+  def __init__(self,_id,_filename,_filesize,_selected):
     self.id=_id
     self.filename=_filename
     self.filesize=_filesize
+    self.selected=_selected
 
   @staticmethod
   def from_dict(obj: Any) -> 'Root':
     _id=list(obj.keys())[0]
     elem = obj.get(_id)
-    _filename = str(elem.get("age"))
-    _filesize = int(elem.get("ageHours"))
-    return __init__(_id,_filename,_filesize)
+    _filename = str(elem.get("filename"))
+    _filesize = int(elem.get("filesize"))
+    _selected = 0
+    return File(_id,_filename,_filesize,_selected)
 
+  def from_dict_ucache(obj: Any) -> 'Root':
+    _filename = str(obj.get("path"))
+    _filesize = int(obj.get("bytes"))
+    _id=int(obj.get("id",0))
+    _selected=int(obj.get("selected",0))
+    return File(_id,_filename,_filesize,_selected)
 
 
 class RealDebrid:
@@ -63,12 +72,16 @@ class RealDebrid:
         torrent_info = response.json()
         self.logger.debug(f"json: {torrent_info}")
         first_key = next(iter(torrent_info))
-        value=torrent_info[first_key]['rd']
-        if (value!=[]):
-            self.logger.debug("Torrent is cached in Real Debrid")
+        if 'rd' in torrent_info[first_key]:
+          value=torrent_info[first_key]['rd']
+          if (value!=[]):
+              self.logger.debug("Torrent is cached in Real Debrid")
+          else:
+              self.logger.debug("Torrent is not cached in Real Debrid")
+          return value
         else:
             self.logger.debug("Torrent is not cached in Real Debrid")
-        return value
+            return []
     else:
         self.logger.error("Failed to check torrent cache status")
         return ""
@@ -102,14 +115,15 @@ class RealDebrid:
            print(f"Torrent id:{item['id']} Filename:{item['filename']}")
            if (hash==item['hash'].lower()):
               print(f"Hash found: {item['hash']} = id: {item['id']}")
-              return item
+              elem=QPElem().from_dict(item)
+              return elem
         num+=len(items)
         if (num < limit):
-          return {} 
+          return None
         page=page+1
       else:
         self.logger.error(f"response code error: {response.status_code}")
-        return {} 
+        return None
 
   def unrestrict_link(self,link):
     apicall=f"{self.rootUrl}/unrestrict/link"
@@ -161,6 +175,13 @@ class RealDebrid:
     else:
       return False
 
+  def check_cached_files(self,hash):
+    torrentcache=self.check_torrent_cache(hash)
+
+    if (torrentcache!=[]):
+      self.logger.debug("torrent in cache")
+    return torrentcache
+
   def add_magnet2rd(self,magnet):
     host=self.get_available_srv()
     self.logger.debug(f"Available host:{host}")
@@ -175,9 +196,9 @@ class RealDebrid:
         rdtorrent=response.json()
         self.logger.debug(f"json: {rdtorrent}")
         if self.select_all_files(rdtorrent):
-          return rdtorrent 
+          return rdtorrent
       
-    return {}
+    return None
 
   def select_all_files(self,rdtorrent,all=True):
     apicall=f"{self.rootUrl}/torrents/info/"
@@ -204,7 +225,7 @@ class RealDebrid:
     return False  
 
   def add_torrent2rd(self,file):
-    host=get_available_srv()
+    host=self.get_available_srv()
     self.logger.debug(f"Available host:{host}")
     if (host!=""):
       apicall=f"{self.rootUrl}/torrents/addTorrent"
@@ -215,10 +236,10 @@ class RealDebrid:
       if response.status_code == 201:
         rdtorrent=response.json()
         self.logger.debug(f"json: {rdtorrent}")
-        if select_all_files(rdtorrent):
-          return rdtorrent 
+        if self.select_all_files(rdtorrent):
+          return rdtorrent
       
-    return {} 
+    return None
 
   def get_info(self,rdtorrent):
     apicall=f"{self.rootUrl}/torrents/info/{rdtorrent['id']}"
@@ -234,8 +255,8 @@ class RealDebrid:
     info=self.get_info(rdtorrent)
     print(f"Status torrent:{info['status']}")
     if (info['status']!='downloaded'):
-      self.logger.debug("f{rdtorrent['id']} not downloaded. Status {info['status']}")
+      self.logger.debug(f"{rdtorrent['id']} not downloaded. Status {info['status']}")
     else:
-      self.logger.debug("f{rdtorrent['id']}. Original filename: {info['original_filename']}")
+      self.logger.debug(f"{rdtorrent['id']}. Original filename: {info['original_filename']}")
     return info
 
