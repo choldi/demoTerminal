@@ -17,7 +17,7 @@ import logging
 from Log import init_log
 from QPElem import QPElem, TorrentElements
 from Prowlarr import Prowlarr
-from rd import RealDebrid as RD
+from rd import RealDebrid as RD, File 
 
 rd:RD
 pr:Prowlarr
@@ -50,6 +50,7 @@ with app.app_context():
    from models.search import Search
    from models.result import Result
    from models.collected import Collected
+   from models.added import Added
 
 jsonrpc = JSONRPC(app, "/api", enable_web_browsable_api=True)
 
@@ -276,18 +277,72 @@ def info(*argv:Any) -> str:
 
     res=f"Hash de torrent: {hash}\n"
     rdtorrent = rd.search_torrent(str(hash).lower())
-    if (rdtorrent!={}):
-        res+=f"Item {rdtorrent['id']} found in user cache\n" 
+    if (rdtorrent is not None):
+        res+=f"Item {rdtorrent.guid} found in user cache\n"
+        exist_in_added=db.session().query(Added).filter(guid=rdtorrent.guid).first()
+        if exist_in_added:
+            return f"Torrent stored already: type status {exist_in_added.Id}"
     else:
         res+="Item not found in user cache\n"
-    isInCache=rd.check_cache(hash)
-    if isInCache:
-        res+=f"Item found in RD cache" 
+    files=rd.check_cached_files(hash)
+    if files!=[]:
+        res+=f"Item found in RD cache. cached files:\n"
+        for f in files:
+            c=File.from_dict(f)
+            res+=f"Id: {c.id} - File:{c.filename} ({c.filesize})\n"
     else:
-        res+=f"Item not found in RD cache"
-    '''
-    to do - not return
-    '''
+        res+=f"Item not found in RD cache\n"
+    return res
+
+@jsonrpc.method("add")
+def add(*argv:Any) -> str:
+    token=argv[0]
+    session=validateSession(token)
+    session_id=session.id
+    logger.debug("session validated")
+    search = db.session.query(Search).filter_by(session_id=session_id).order_by(Search.search_date).first()
+    if (search is None):
+        return "No active query"
+    res_elem = db.session.query(Result).filter(and_(Result.search_id==search.id,Result.selected)).first()
+    if (res_elem is None):
+        return "No element select"
+    qp=res_elem.toQPElem()
+    typ,data=pr.get_magnet_or_file(qp)
+    print (f"{typ} - {data}")
+    if typ == "magnet":
+      hash=rd.get_torrent_hash(data)
+    else:
+      hash=rd.get_torrent_hash_from_file(data)
+
+    print(f"Hash de fichero: {hash}")
+
+    res=f"Hash de torrent: {hash}\n"
+    rdtorrent = rd.search_torrent(str(hash).lower())
+    if (rdtorrent is not None):
+        res+=f"Item {rdtorrent.guid} in user cache\n" 
+        exist_in_added=db.session().query(Added).filter(guid=rdtorrent.guid).first()
+        if exist_in_added:
+            return f"Torrent stored already: type status {exist_in_added.Id}"
+        else:
+            addTorrent=Added(session.user_id,rdtorrent)
+            db.session.add(Torrent) 
+            db.sessin.commit()
+            return f"{res}\nTorrent stored: type status {exist_in_added.Id} to check status"
+    else:
+        if typ == "magnet":
+            rdtorrent=rd.add_magnet2rd(data)
+        else:
+            rdtorrent=rd.add_torrent2rd(data)
+
+    elem=rd.get_info(rdtorrent)
+    rdfiles=rd.get_files(elem)  
+    if rdfiles!=[]:
+        res+=f"Torrent filename: {rdfiles['filename']}\n"
+        files=rdfiles['files']
+        for i in range(len(files)):
+            c=File.from_dict_ucache(files[i])
+            res+=f"Id: {c.id} - File:{c.filename} ({c.filesize} bytes - Selected {c.selected})\n"
+ 
     return res
 
 @jsonrpc.method("help")
