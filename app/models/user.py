@@ -8,4 +8,5 @@ class User(db.Model):
     email = db.Column(db.String)
     sessions = db.relationship('Session', backref='user', lazy=True)
     collects = db.relationship('Collected', backref='user', lazy=True)
+    adds = db.relationship('Added', backref='user', lazy=True)
 
