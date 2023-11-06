@@ -1,7 +1,7 @@
 from Model import db
 from sqlalchemy.sql import func
 
-MAX_QUERY=5
+
 
 class Search(db.Model):
     __tablename__ = 'search'
