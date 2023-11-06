@@ -109,9 +109,11 @@ class QPElem:
         _leechers = int(obj.get("leechers"))
         _protocol = str(obj.get("protocol"))
         _fileName = str(obj.get("fileName"))
-        _cat=_categories[0].name
+        if len(_categories)>0:
+            _cat=_categories[0].name
+        else:
+            _cat="Unknown"
         return QPElem(_guid, _age, _ageHours, _ageMinutes, _size, _indexerId, _indexer, _title, _sortTitle, _approved, _imdbId, _publishDate, _downloadUrl, _magnetUrl,_infoUrl, _indexerFlags, _categories, _seeders, _leechers, _protocol, _fileName,_cat)
-
     @staticmethod
     def from_str(str) -> 'Root':
         elem=json.loads(str)
