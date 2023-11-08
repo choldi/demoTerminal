@@ -325,7 +325,7 @@ def add(*argv:Any) -> str:
             return f"Torrent stored already: type status {exist_in_added.Id}"
         else:
             addTorrent=Added(session.user_id,rdtorrent)
-            db.session.add(Torrent) 
+            db.session.add(addTorrent) 
             db.sessin.commit()
             return f"{res}\nTorrent stored: type status {exist_in_added.Id} to check status"
     else:
@@ -333,6 +333,10 @@ def add(*argv:Any) -> str:
             rdtorrent=rd.add_magnet2rd(data)
         else:
             rdtorrent=rd.add_torrent2rd(data)
+            addTorrent=Added(session.user_id,rdtorrent)
+            db.session.add(addTorrent) 
+            db.sessin.commit()
+            return f"{res}\nTorrent stored: type status {exist_in_added.Id} to check status"
 
     elem=rd.get_info(rdtorrent)
     rdfiles=rd.get_files(elem)  
