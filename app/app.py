@@ -50,6 +50,8 @@ with app.app_context():
    from models.search import Search
    from models.result import Result
    from models.collected import Collected
+   from models.link import Link
+   from models.filestore import Filestore
    from models.added import Added
 
 jsonrpc = JSONRPC(app, "/api", enable_web_browsable_api=True)
@@ -324,8 +326,8 @@ def add(*argv:Any) -> str:
         if exist_in_added:
             return f"Torrent stored already: type status {exist_in_added.Id}"
         else:
-            addTorrent=Added(session.user_id,rdtorrent)
-            db.session.add(addTorrent) 
+            elem=rd.get_info(rdtorrent)
+            addTorrent=Added(session.user_id,elem)
             db.sessin.commit()
             return f"{res}\nTorrent stored: type status {exist_in_added.Id} to check status"
     else:
@@ -333,18 +335,25 @@ def add(*argv:Any) -> str:
             rdtorrent=rd.add_magnet2rd(data)
         else:
             rdtorrent=rd.add_torrent2rd(data)
-            addTorrent=Added(session.user_id,rdtorrent)
-            db.session.add(addTorrent) 
-            db.sessin.commit()
-            return f"{res}\nTorrent stored: type status {exist_in_added.Id} to check status"
+        elem=rd.get_info(rdtorrent)
+        addTorrent=Added(session.user_id,elem)
+        db.session.add(addTorrent) 
+        db.session.commit()
+        for i in range(len(elem.files)):
+            f=Filestore(elem.files[i],addTorrent.id)
+            db.session.add(f)
+            db.session.commit()
+        for i in range(len(elem.links)):
+            l=Filestore(elem.links[i],addTorrent.id)
+            db.session.add(l)
+            db.session.commit()
+        
+        res+=f"{res}\nTorrent stored: type status {exist_in_added.Id} to check status"
 
-    elem=rd.get_info(rdtorrent)
-    rdfiles=rd.get_files(elem)  
-    if rdfiles!=[]:
-        res+=f"Torrent filename: {rdfiles['filename']}\n"
-        files=rdfiles['files']
+    files=rd.get_files(elem)  
+    if files!=[]:
+        res+=f"Torrent filename: {elem.filename}\n"
         for i in range(len(files)):
-            c=File.from_dict_ucache(files[i])
             res+=f"Id: {c.id} - File:{c.filename} ({c.filesize} bytes - Selected {c.selected})\n"
  
     return res
