@@ -38,6 +38,50 @@ class File:
     return File(_id,_filename,_filesize,_selected)
 
 
+class RDInfo:
+  def __init__(self,_id,_filename,_original_filename,_hash,_bytes,_original_bytes,_host,_split,
+               _progress,_status,_added,_ended,_speed,_seeders,_links,_files):
+    self.id=_id
+    self.filename=_filename
+    self.original_filename=_original_filename
+    self.hash=_hash
+    self.bytes=_bytes
+    self.original_bytes=_original_bytes
+    self.host=_host
+    self.split=_split
+    self.progress=_progress
+    self.status=_status
+    self.added=_added
+    self.ended=_ended
+    self.speed=_speed
+    self.seeders=_seeders
+    self.links=_links
+    self.files=_files
+
+  @staticmethod
+  def from_dict(obj:Any)->'Root':
+    _id = str(obj.get('id'))
+    _filename = str(obj.get('filename'))
+    _original_filename=str(obj.get('original_filename'))
+    _hash=str(obj.get('hash'))
+    _bytes=int(obj.get('bytes'))
+    _original_bytes=int(obj.get('original_bytes'))
+    _host=str(obj.get('host'))
+    _split=int(obj.get('split'))
+    _progress=int(obj.get('progress'))
+    _status=str(obj.get('status'))
+    _added=str(obj.get('added',""))
+    _ended=str(obj.get('ended',""))
+    _speed=int(obj.get('speed',0))
+    _seeders=int(obj.get('seeders',0))
+    _links=obj.get('links')
+    _f=obj.get('files')
+    _files=[ File.from_dict_ucache(f) for f in _f ]
+    return RDInfo(_id,_filename,_original_filename,_hash,_bytes,_original_bytes,_host,_split,
+               _progress,_status,_added,_ended,_speed,_seeders,_links,_files)
+
+ 
+
 class RealDebrid:
   def __init__(self, api_key,loglevel=logging.DEBUG):
     self.api_key = api_key
@@ -115,7 +159,7 @@ class RealDebrid:
            print(f"Torrent id:{item['id']} Filename:{item['filename']}")
            if (hash==item['hash'].lower()):
               print(f"Hash found: {item['hash']} = id: {item['id']}")
-              elem=QPElem().from_dict(item)
+              elem=QPElem.from_dict(item)
               return elem
         num+=len(items)
         if (num < limit):
@@ -241,7 +285,7 @@ class RealDebrid:
       
     return None
 
-  def get_info(self,rdtorrent):
+  def get_info(self,rdtorrent)->RDInfo:
     apicall=f"{self.rootUrl}/torrents/info/{rdtorrent['id']}"
     self.logger.debug (f"apicall:{apicall}")
     response = requests.get(apicall, headers=self.headers)
@@ -249,14 +293,15 @@ class RealDebrid:
     if response.status_code == 200:
       info=response.json()
       self.logger.debug(f"json: {info}")
-      return response.json()
+      rdi=RDInfo.from_dict(response.json())
+      return rdi
 
-  def get_files(self,rdtorrent):
+  def get_files(self,rdtorrent)->RDInfo:
     info=self.get_info(rdtorrent)
     print(f"Status torrent:{info['status']}")
-    if (info['status']!='downloaded'):
-      self.logger.debug(f"{rdtorrent['id']} not downloaded. Status {info['status']}")
+    if info.status !='downloaded':
+      self.logger.debug(f"{rdtorrent['id']} not downloaded. Status {info.status}")
     else:
-      self.logger.debug(f"{rdtorrent['id']}. Original filename: {info['original_filename']}")
-    return info
+      self.logger.debug(f"{rdtorrent['id']}. Original filename: {info.original_filename}")
+    return info.files
 
