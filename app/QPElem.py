@@ -119,6 +119,35 @@ class QPElem:
         elem=json.loads(str)
         return QPElem.from_dict(elem)
 
+    @staticmethod
+    def from_dict_rd(obj: Any) -> 'Root':
+        _guid = str(obj.get("guid"))
+        _age = int(obj.get("age"))
+        _ageHours = float(obj.get("ageHours"))
+        _ageMinutes = float(obj.get("ageMinutes"))
+        _size = int(obj.get("size"))
+        _indexerId = int(obj.get("indexerId"))
+        _indexer = str(obj.get("indexer"))
+        _title = str(obj.get("title"))
+        _sortTitle = str(obj.get("sortTitle"))
+        _approved = bool(obj.get("approved"))
+        _imdbId = int(obj.get("imdbId"))
+        _publishDate = str(obj.get("publishDate"))
+        _downloadUrl = str(obj.get("downloadUrl"))
+        _magnetUrl = str(obj.get("magnetUrl"))
+        _infoUrl = str(obj.get("infoUrl"))
+        _indexerFlags = [y for y in obj.get("indexerFlags")]
+        _categories = [Category.from_dict(y) for y in obj.get("categories")]
+        _seeders = int(obj.get("seeders"))
+        _leechers = int(obj.get("leechers"))
+        _protocol = str(obj.get("protocol"))
+        _fileName = str(obj.get("fileName"))
+        if len(_categories)>0:
+            _cat=_categories[0].name
+        else:
+            _cat="Unknown"
+        return QPElem(_guid, _age, _ageHours, _ageMinutes, _size, _indexerId, _indexer, _title, _sortTitle, _approved, _imdbId, _publishDate, _downloadUrl, _magnetUrl,_infoUrl, _indexerFlags, _categories, _seeders, _leechers, _protocol, _fileName,_cat)
+
 class TorrentElements(List):
 
     def loadFromList(self,elems):
