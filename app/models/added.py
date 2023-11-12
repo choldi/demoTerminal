@@ -29,7 +29,7 @@ class Added(db.Model):
     def __init__(self,userId,rdi:RDInfo):
 
         self.user_id=userId
-        self.rdid=rdi.id
+        self.rd_id=rdi.id
         self.filename=rdi.filename
         self.original_filename=rdi.original_filename
         self.hash=rdi.hash
