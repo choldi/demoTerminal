@@ -159,7 +159,7 @@ class RealDebrid:
            print(f"Torrent id:{item['id']} Filename:{item['filename']}")
            if (hash==item['hash'].lower()):
               print(f"Hash found: {item['hash']} = id: {item['id']}")
-              elem=QPElem.from_dict(item)
+              elem=self.get_info(item)
               return elem
         num+=len(items)
         if (num < limit):
