@@ -28,7 +28,7 @@ class ArgumentParser(argparse.ArgumentParser):
     def error(self, message):
         raise Exception(message) 
 
-SECONDS_FOR_INACTIVE_SESSION=300
+SECONDS_FOR_INACTIVE_SESSION=3000
 # init SQLAlchemy so we can use it later in our models
 
 app = Flask(__name__)
@@ -321,15 +321,24 @@ def add(*argv:Any) -> str:
     res=f"Hash de torrent: {hash}\n"
     rdtorrent = rd.search_torrent(str(hash).lower())
     if (rdtorrent is not None):
-        res+=f"Item {rdtorrent.guid} in user cache\n" 
-        exist_in_added=db.session().query(Added).filter(guid=rdtorrent.guid).first()
+        res+=f"Item {rdtorrent.id} in user cache\n" 
+        exist_in_added=db.session().query(Added).filter_by(rd_id=rdtorrent.id).first()
         if exist_in_added:
-            return f"Torrent stored already: type status {exist_in_added.Id}"
+            return f"Torrent stored already: type status {exist_in_added.id}"
         else:
-            elem=rd.get_info(rdtorrent)
+            elem=rd.get_info(rdtorrent.__dict__)
             addTorrent=Added(session.user_id,elem)
-            db.sessin.commit()
-            return f"{res}\nTorrent stored: type status {exist_in_added.Id} to check status"
+            db.session.add(addTorrent)
+            db.session.commit()
+            for i in range(len(elem.files)):
+                f=Filestore(elem.files[i],addTorrent.id)
+                db.session.add(f)
+                db.session.commit()
+            for i in range(len(elem.links)):
+                l=Link(elem.links[i],addTorrent.id)
+                db.session.add(l)
+                db.session.commit()
+            return f"{res}\nTorrent stored: type status {exist_in_added.id} to check status"
     else:
         if typ == "magnet":
             rdtorrent=rd.add_magnet2rd(data)
