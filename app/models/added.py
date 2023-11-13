@@ -1,6 +1,7 @@
 from Model import db
 from QPElem import QPElem
 from rd import RDInfo
+from copy import deepcopy
 
 class Added(db.Model):
     __tablename__ = 'added'
@@ -60,6 +61,14 @@ class Added(db.Model):
         return elem        
 
     def to_rdtorrent(self):
-        elem=self.__dict__
-        elem['id']=self.rd_id
-        return elem
+        elem=deepcopy(self)
+        elem.id=self.rd_id  
+        return elem.__dict__
+    
+    def update(self,_rdi):
+        self.status=_rdi.status
+        self.added=_rdi.added
+        self.ended=_rdi.ended
+        self.speed=_rdi.speed
+        self.seeders=_rdi.seeders
+        self.original_filename="original f"
