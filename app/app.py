@@ -387,6 +387,8 @@ def status(*argv:Any) -> str:
     if added_elem is None:
         return f"Value {number} don't exist. Type status without param"
     rdi=rd.get_info(added_elem.to_rdtorrent())
+    added_elem.update(rdi)
+    db.session.commit()
     res+=f"{rdi.filename}- {rdi.status}"
     return res
 
