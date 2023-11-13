@@ -367,6 +367,30 @@ def add(*argv:Any) -> str:
  
     return res
 
+@jsonrpc.method("status")
+def status(*argv:Any) -> str:
+    token=argv[0]
+    session=validateSession(token)
+    session_id=session.id
+    logger.debug("session validated")
+    res=""
+    if len(argv)==1:
+        stored = db.session.query(Added).filter_by(user_id=session.user_id)
+        for s in stored:
+            res+=f"Item: {s.id} - {s.rd_id}: {s.filename}"
+        return res
+    number=argv[1]
+    if not isinstance(number,int):
+        return "Need to specify number"
+    added_elem = db.session.query(Added).filter(and_(Added.user_id==session.user_id,
+                Added.id==number)).first()
+    if added_elem is None:
+        return f"Value {number} don't exist. Type status without param"
+    rdi=rd.get_info(added_elem.to_rdtorrent())
+    res+=f"{rdi.filename}- {rdi.status}"
+    return res
+
+
 @jsonrpc.method("help")
 def help(*argv:str) -> str:
     r=request.get_json()
