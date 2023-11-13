@@ -58,3 +58,8 @@ class Added(db.Model):
         elem.seeders = self.seeders
         elem.cat = self.category
         return elem        
+
+    def to_rdtorrent(self):
+        elem=self.__dict__
+        elem['id']=self.rd_id
+        return elem
